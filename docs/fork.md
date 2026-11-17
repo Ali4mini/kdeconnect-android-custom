@@ -11,7 +11,7 @@ KDE Connect's existing Android behavior and desktop protocol.
 | Date | Change | Verification |
 | --- | --- | --- |
 | 2026-11-17 | Set up the development baseline and documented the fork workflow. | See the baseline results below. |
-| 2026-11-17 | Added Android queue export and selection, a Linux companion patch, and a Rofi picker. | Debug build and 140 unit tests passed. Mocked picker selection and cancellation passed. Live Arch and phone testing is pending. |
+| 2026-11-17 | Added Android queue export and selection, Linux companion support, and a Rofi picker. | Debug build and 140 unit tests passed. Mocked picker selection and cancellation passed. Live Arch and phone testing is pending. |
 
 For each user-visible or compatibility change, record the affected behavior,
 the issue or PR when available, and the build or device checks performed.
@@ -29,8 +29,9 @@ of that queue entry on the phone.
   selections against the current session and queue.
 - The Linux KDE Connect MPRIS proxy needs a queue extension. It currently
   exports basic player controls without the MPRIS `TrackList` interface.
-  The companion patch adds queue requests and selection to the existing
-  per-device KDE Connect D-Bus interface. See [Rofi queue setup](../desktop/README.md).
+  The [desktop fork](https://github.com/Ali4mini/kdeconnect-kde-custom) adds
+  queue requests and selection to the per-device D-Bus interface and owns
+  the Rofi launcher and Arch setup guide. See the [queue protocol](music-queue-protocol.md).
 - The launcher displays an explicit unavailable state when the music app
   provides no queue and a read-only queue when the app supports listing only.
   Canceling the picker sends no playback command.

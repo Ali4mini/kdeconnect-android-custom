@@ -4,6 +4,7 @@ This repository is the starting point for a custom Android version of KDE Connec
 
 - [Development setup and verification](docs/development.md)
 - [Fork changes, decisions, and limitations](docs/fork.md)
+- [Desktop fork and Rofi picker](https://github.com/Ali4mini/kdeconnect-kde-custom)
 
 ## About KDE Connect
 
