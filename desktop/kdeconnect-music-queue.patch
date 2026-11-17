@@ -1,0 +1,77 @@
+diff --git a/plugins/mprisremote/mprisremoteplugin.cpp b/plugins/mprisremote/mprisremoteplugin.cpp
+index 4435d96..0a7da16 100644
+--- a/plugins/mprisremote/mprisremoteplugin.cpp
++++ b/plugins/mprisremote/mprisremoteplugin.cpp
+@@ -34,6 +34,14 @@ void MprisRemotePlugin::receivePacket(const NetworkPacket &np)
+     if (np.type() != PACKET_TYPE_MPRIS)
+         return;
+
++    if (np.has(QStringLiteral("queueRequestId"))) {
++        if (np.get<QString>(QStringLiteral("queueRequestId")) == m_queueRequestId
++            && np.get<QString>(QStringLiteral("player")) == m_queueRequestPlayer) {
++            m_queueReply = np.get<QString>(QStringLiteral("queueReply"));
++        }
++        return;
++    }
++
+     if (np.get<bool>(QStringLiteral("transferringAlbumArt"), false)) {
+         AlbumArtCache::instance()->handleAlbumArt(np);
+         return;
+@@ -100,6 +108,33 @@ void MprisRemotePlugin::requestPlayerStatus(const QString &player)
+     sendPacket(np);
+ }
+
++void MprisRemotePlugin::requestMusicQueue(const QString &player, const QString &requestId)
++{
++    m_queueRequestId = requestId;
++    m_queueRequestPlayer = player;
++    m_queueReply.clear();
++    NetworkPacket np(PACKET_TYPE_MPRIS_REQUEST, {{QStringLiteral("player"), player}, {QStringLiteral("queueRequestId"), requestId}});
++    sendPacket(np);
++}
++
++void MprisRemotePlugin::selectMusicQueueItem(const QString &player, const QString &requestId, const QString &token, const QString &itemId)
++{
++    m_queueRequestId = requestId;
++    m_queueRequestPlayer = player;
++    m_queueReply.clear();
++    NetworkPacket np(PACKET_TYPE_MPRIS_REQUEST,
++                     {{QStringLiteral("player"), player},
++                      {QStringLiteral("queueRequestId"), requestId},
++                      {QStringLiteral("queueToken"), token},
++                      {QStringLiteral("queueItemId"), itemId}});
++    sendPacket(np);
++}
++
++QString MprisRemotePlugin::musicQueueReply(const QString &requestId) const
++{
++    return requestId == m_queueRequestId ? m_queueReply : QString();
++}
++
+ void MprisRemotePlugin::requestPlayerList()
+ {
+     NetworkPacket np(PACKET_TYPE_MPRIS_REQUEST, {{QStringLiteral("requestPlayerList"), true}});
+diff --git a/plugins/mprisremote/mprisremoteplugin.h b/plugins/mprisremote/mprisremoteplugin.h
+index 18987b3..f6228e9 100644
+--- a/plugins/mprisremote/mprisremoteplugin.h
++++ b/plugins/mprisremote/mprisremoteplugin.h
+@@ -61,6 +61,9 @@ public:
+     void receivePacket(const NetworkPacket &np) override;
+     QString dbusPath() const override;
+
++    Q_SCRIPTABLE void requestMusicQueue(const QString &player, const QString &requestId);
++    Q_SCRIPTABLE void selectMusicQueueItem(const QString &player, const QString &requestId, const QString &token, const QString &itemId);
++    Q_SCRIPTABLE QString musicQueueReply(const QString &requestId) const;
+     Q_SCRIPTABLE void seek(int offset) const;
+     Q_SCRIPTABLE void requestPlayerList();
+     Q_SCRIPTABLE void sendAction(const QString &action);
+@@ -74,6 +77,9 @@ Q_SIGNALS:
+ private:
+     void requestPlayerStatus(const QString &player);
+
++    QString m_queueRequestId;
++    QString m_queueRequestPlayer;
++    QString m_queueReply;
+     QString m_currentPlayer;
+     QMap<QString, MprisRemotePlayer *> m_players;
+ };

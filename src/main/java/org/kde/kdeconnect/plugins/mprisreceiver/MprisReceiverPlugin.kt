@@ -75,6 +75,27 @@ class MprisReceiverPlugin : Plugin() {
         val player = players[playerName]
             ?: return false
 
+        val queueRequestId = np.getStringOrNull("queueRequestId")
+        if (queueRequestId != null) {
+            val response = NetworkPacket(PACKET_TYPE_MPRIS)
+            response["player"] = playerName
+            response["queueRequestId"] = queueRequestId
+            val selectionId = np.getStringOrNull("queueItemId")
+            if (selectionId == null) {
+                response["queueReply"] = player.readQueue()
+            } else {
+                val id = selectionId.toLongOrNull()
+                val token = np.getStringOrNull("queueToken")
+                response["queueReply"] = if (id != null && token != null && player.selectQueueItem(token, id)) {
+                    """{"accepted":true}"""
+                } else {
+                    """{"accepted":false}"""
+                }
+            }
+            device.sendPacket(response)
+            return true
+        }
+
         val artUrl = np.getString("albumArtUrl", "")
         if (!artUrl.isEmpty()) {
             // run it on a different thread to avoid blocking

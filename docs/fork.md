@@ -11,9 +11,36 @@ KDE Connect's existing Android behavior and desktop protocol.
 | Date | Change | Verification |
 | --- | --- | --- |
 | 2026-11-17 | Set up the development baseline and documented the fork workflow. | See the baseline results below. |
+| 2026-11-17 | Added Android queue export and selection, a Linux companion patch, and a Rofi picker. | Debug build and 140 unit tests passed. Mocked picker selection and cancellation passed. Live Arch and phone testing is pending. |
 
 For each user-visible or compatibility change, record the affected behavior,
 the issue or PR when available, and the build or device checks performed.
+
+## First feature — phone music queue in Rofi
+
+On Arch Linux, launch a Rofi picker for the paired phone's active music player.
+Show the queue in playback order with title and artist where available. Mark
+the active item when the player reports it. Selecting a row requests playback
+of that queue entry on the phone.
+
+- Android reads queue entries and selection capability from the active
+  `MediaSession` and passes them through the paired KDE Connect connection.
+  Keep entry IDs distinct even when the same song appears twice. Validate
+  selections against the current session and queue.
+- The Linux KDE Connect MPRIS proxy needs a queue extension. It currently
+  exports basic player controls without the MPRIS `TrackList` interface.
+  The companion patch adds queue requests and selection to the existing
+  per-device KDE Connect D-Bus interface. See [Rofi queue setup](../desktop/README.md).
+- The launcher displays an explicit unavailable state when the music app
+  provides no queue and a read-only queue when the app supports listing only.
+  Canceling the picker sends no playback command.
+
+Verify on Arch Linux with the intended Android music player. Check duplicate
+track titles, a queue change while the picker is open, cancellation, and
+selecting a track while playback is paused. The phone player determines which
+queue entries it exposes and how it responds to selection. The picker lists
+the first 1,000 entries and rejects selections if that part of the queue
+changes while the menu is open.
 
 ## Open decisions and limitations
 

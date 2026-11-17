@@ -14,7 +14,11 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Pair
 import androidx.core.net.toUri
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.ByteArrayOutputStream
+import java.util.UUID
 
 internal class MprisReceiverPlayer(
     private val controller: MediaController,
@@ -100,6 +104,55 @@ internal class MprisReceiverPlayer(
                 art = AlbumArt(newHash, artAndUri.first, makeArtUrl(newHash, artAndUri.second), newAlbum, newArtist)
             }
         }
+    }
+
+    private data class QueueEntry(val id: Long, val title: String, val artist: String)
+    private data class QueueSnapshot(val token: String, val entries: List<QueueEntry>?)
+
+    @Volatile
+    private var queueSnapshot: QueueSnapshot? = null
+
+    private fun queueEntries(): List<QueueEntry>? = controller.queue?.take(1000)?.map {
+        QueueEntry(
+            it.queueId,
+            it.description.title?.toString()?.take(512).orEmpty(),
+            it.description.subtitle?.toString()?.take(512).orEmpty(),
+        )
+    }
+
+    private fun canSelectQueueItem(): Boolean =
+        ((controller.playbackState?.actions ?: 0L) and PlaybackState.ACTION_SKIP_TO_QUEUE_ITEM) != 0L
+
+    fun readQueue(): String {
+        val entries = queueEntries()
+        val snapshot = QueueSnapshot(UUID.randomUUID().toString(), entries)
+        queueSnapshot = snapshot
+        val activeId = controller.playbackState?.activeQueueItemId
+        return buildJsonObject {
+            put("token", snapshot.token)
+            put("available", entries != null)
+            put("canSelect", canSelectQueueItem())
+            put("activeId", activeId?.toString())
+            put("entries", JsonArray(entries.orEmpty().map { entry ->
+                buildJsonObject {
+                    put("id", entry.id.toString())
+                    put("title", entry.title)
+                    put("artist", entry.artist)
+                }
+            }))
+        }.toString()
+    }
+
+    fun selectQueueItem(token: String, id: Long): Boolean {
+        val snapshot = queueSnapshot ?: return false
+        val entries = snapshot.entries ?: return false
+        if (snapshot.token != token || !canSelectQueueItem() ||
+            entries.none { it.id == id } || entries != queueEntries()
+        ) return false
+
+        controller.transportControls.skipToQueueItem(id)
+        if (!isPlaying() && canPlay()) controller.transportControls.play()
+        return true
     }
 
     fun isPlaying(): Boolean {
