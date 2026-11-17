@@ -1,4 +1,11 @@
-# KDE Connect - Android app
+# KDE Connect Android custom fork
+
+This repository is the starting point for a custom Android version of KDE Connect.
+
+- [Development setup and verification](docs/development.md)
+- [Fork changes, decisions, and limitations](docs/fork.md)
+
+## About KDE Connect
 
 KDE Connect is a multi-platform app that allows your devices to communicate (eg: your phone and your computer).
 
@@ -23,7 +30,7 @@ You can install this app from the [Play Store](https://play.google.com/store/app
 
 A lot of useful information, including how to get started working on KDE Connect and how to connect with the current developers, is on our [KDE Community Wiki page](https://community.kde.org/KDEConnect)
 
-For bug reporting, please use [KDE's Bugzilla](https://bugs.kde.org). Please do not use the issue tracker in GitLab since we want to keep everything in one place.
+Track fork-specific changes and bugs in this repository. For bugs that also reproduce in upstream KDE Connect, use [KDE’s Bugzilla](https://bugs.kde.org).
 
 To contribute patches, use [KDE Connect's Gitlab](https://invent.kde.org/network/kdeconnect-android/).
 On Gitlab (as well as on our [old Phabricator](https://phabricator.kde.org/tag/kde_connect/)) you can find a task list with stuff to do and links to other relevant resources.
@@ -34,4 +41,4 @@ Please know that all translations for all KDE apps are handled by the [localizat
 ## License
 [GNU GPL v2](https://www.gnu.org/licenses/gpl-2.0.html) and [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.html)
 
-If you are reading this from GitHub, you should know that this is just a mirror of the [KDE Project repo](https://invent.kde.org/network/kdeconnect-android/).
+The [KDE project repository](https://invent.kde.org/network/kdeconnect-android/) is the upstream source.
