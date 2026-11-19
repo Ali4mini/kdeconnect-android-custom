@@ -30,6 +30,28 @@ class MprisReceiverPlugin : Plugin() {
 
     private var mediaSessionChangeListener = MediaSessionChangeListener()
 
+    @Volatile
+    private var libraryHelper: MediaBrowserLibraryHelper? = null
+
+    internal fun setLibraryHelperForTest(helper: MediaBrowserLibraryHelper) {
+        libraryHelper = helper
+    }
+
+    private fun getLibraryHelper(): MediaBrowserLibraryHelper {
+        libraryHelper?.let { return it }
+        return synchronized(this) {
+            libraryHelper ?: MediaBrowserLibraryHelper(context).also { libraryHelper = it }
+        }
+    }
+
+    private fun activeLibrarySessions(): Map<String, MediaBrowserLibraryHelper.ActiveSessionInfo> =
+        players.values.associate {
+            it.packageName to MediaBrowserLibraryHelper.ActiveSessionInfo(
+                name = it.name,
+                canQueue = it.hasQueue(),
+            )
+        }
+
     override fun onCreate() {
         val manager = context.getSystemService<MediaSessionManager>()!!
         manager.addOnActiveSessionsChangedListener(
@@ -50,6 +72,8 @@ class MprisReceiverPlugin : Plugin() {
         val manager = context.getSystemService<MediaSessionManager>()!!
         manager.removeOnActiveSessionsChangedListener(mediaSessionChangeListener)
         releasePlayers()
+        libraryHelper?.release()
+        libraryHelper = null
     }
 
     private fun createPlayers(sessions: MutableList<MediaController>) {
@@ -67,6 +91,43 @@ class MprisReceiverPlugin : Plugin() {
     override fun onPacketReceived(np: NetworkPacket): Boolean {
         if (np.getBoolean("requestPlayerList")) {
             sendPlayerList()
+            return true
+        }
+
+        val libraryRequestId = np.getStringOrNull("libraryRequestId")
+        if (libraryRequestId != null) {
+            val requestedPlayer = np.getStringOrNull("player")
+            val action = np.getStringOrNull("libraryAction")
+            val parentId = np.getStringOrNull("parentId")
+            val mediaId = np.getStringOrNull("mediaId")
+            val active = activeLibrarySessions()
+            ThreadHelper.runOnNewThread {
+                val helper = getLibraryHelper()
+                val response = NetworkPacket(PACKET_TYPE_MPRIS)
+                response["libraryRequestId"] = libraryRequestId
+                if (requestedPlayer != null) {
+                    response["player"] = requestedPlayer
+                }
+                response["libraryReply"] = when (action) {
+                    "players" -> helper.readLibraryPlayers(active)
+                    "browse" -> {
+                        if (requestedPlayer.isNullOrEmpty()) {
+                            helper.errorReply("Missing player name.")
+                        } else {
+                            helper.browse(requestedPlayer, parentId, active)
+                        }
+                    }
+                    "play" -> {
+                        if (requestedPlayer.isNullOrEmpty() || mediaId.isNullOrEmpty()) {
+                            helper.playErrorReply("Missing player or mediaId.")
+                        } else {
+                            helper.playMediaId(requestedPlayer, mediaId, active)
+                        }
+                    }
+                    else -> helper.errorReply("Unsupported libraryAction: ${action ?: ""}")
+                }
+                device.sendPacket(response)
+            }
             return true
         }
 

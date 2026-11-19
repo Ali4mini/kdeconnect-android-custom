@@ -12,6 +12,7 @@ KDE Connect's existing Android behavior and desktop protocol.
 | --- | --- | --- |
 | 2026-11-17 | Set up the development baseline and documented the fork workflow. | See the baseline results below. |
 | 2026-11-17 | Added Android queue export and selection, Linux companion support, and a Rofi picker. | Debug build and 140 unit tests passed. Mocked picker selection and cancellation passed. Live Arch and phone testing is pending. |
+| 2026-11-19 | Added `MediaBrowserService` full library discovery, browsing, and `playFromMediaId` playback (`libraryRequestId`), plus desktop C++ D-Bus methods and Rofi category menu. | Android `testDebugUnitTest` passed all 26 suites; desktop `mprisremotelibrarytest` and `rofi_queue_test.py` (4 tests) passed. Live Arch (`kdeconnect-kde-custom` `a69c28a95`) + `SM_A366B` (`172.25.1.54`) pairing verified Musicolet (159 songs, category browse, `playLibraryMediaItem` track switch, active queue select, pause) and VLC root browsing. |
 
 For each user-visible or compatibility change, record the affected behavior,
 the issue or PR when available, and the build or device checks performed.
@@ -35,6 +36,14 @@ of that queue entry on the phone.
 - The launcher displays an explicit unavailable state when the music app
   provides no queue and a read-only queue when the app supports listing only.
   Canceling the picker sends no playback command.
+
+## Second feature — full phone music library browser in Rofi
+
+Browse installed music apps' libraries from Arch Linux via a Rofi category menu (`Active Queue`, promoted `Library` categories such as `Albums`, `Artists`, `Genres`, `All songs`, `Playlists`, and `Switch player`), including cold-start browsing when no `MediaSession` is active.
+
+- [`MediaBrowserLibraryHelper`](../src/main/java/org/kde/kdeconnect/plugins/mprisreceiver/MediaBrowserLibraryHelper.kt) discovers exported Android `MediaBrowserService` implementations (excluding self and Bluetooth), caches connected `MediaBrowser`/`MediaController` sessions across requests, exports up to 1,000 items per browse request, and dispatches `playFromMediaId` on item selection.
+- Companion desktop commit in `Ali4mini/kdeconnect-kde-custom`: `a69c28a95` (`feature/rofi-music-queue`).
+- Known limitations: `SEARCH_SUPPORTED` is false on tested players (filtering runs inside Rofi over returned items, capped at 1,000 per folder); non-music or Android-Auto-restricted browser services (`Telegram`, `ReadEra`, `YouTube`) reject external callers or return `__EMPTY_ROOT__` and are hidden when inactive in Rofi.
 
 Verify on Arch Linux with the intended Android music player. Check duplicate
 track titles, a queue change while the picker is open, cancellation, and

@@ -25,6 +25,10 @@ internal class MprisReceiverPlayer(
     val name: String,
     private val onChanged: (MprisReceiverPlayer) -> Unit,
 ) {
+    val packageName: String
+        get() = controller.packageName
+
+    fun hasQueue(): Boolean = !controller.queue.isNullOrEmpty()
     /**
      * Immutable snapshot of the current album art. Updated on the main thread but read from
      * other threads, so it is swapped as a whole to keep the url and bitmap consistent.
